@@ -111,6 +111,7 @@ def flatbuffer_library_public(
         "$$f;",
         "done",
     ])
+    print(genrule_cmd)
     native.genrule(
         name = name,
         srcs = srcs + includes,
