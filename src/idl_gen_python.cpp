@@ -2098,7 +2098,6 @@ class PythonGenerator : public BaseGenerator {
       const std::string local_import = "." + mod;
 
       code += "import flatbuffers\n";
-      code += "from flatbuffers.compat import import_numpy\n";
       if (parser_.opts.python_typing) {
         code += "from typing import Any\n";
 
@@ -2114,7 +2113,7 @@ class PythonGenerator : public BaseGenerator {
           }
         }
       }
-      code += "np = import_numpy()\n\n";
+      code += "np = None\n\n";
     }
   }
 
