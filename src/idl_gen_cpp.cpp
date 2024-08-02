@@ -2223,6 +2223,13 @@ class CppGenerator : public BaseGenerator {
     if (struct_def && opts_.binary_schema_gen_embed) {
       code_ += "  typedef " + WrapInNameSpace(*struct_def) +
                "BinarySchema BinarySchema;";
+    } else {
+      if (!struct_def) {
+        LogCompilerWarn("Missing root type");
+      }
+      if (!opts_.binary_schema_gen_embed) {
+        LogCompilerWarn("Binary schema generation is disabled");
+      }
     }
   }
 
