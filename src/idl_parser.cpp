@@ -948,11 +948,13 @@ CheckedError Parser::ParseField(StructDef &struct_def) {
     // For union fields, add a second auto-generated field to hold the type,
     // with a special suffix.
 
-    // To ensure compatibility with many codes that rely on the BASE_TYPE_UTYPE value to identify union type fields.
+    // To ensure compatibility with many codes that rely on the BASE_TYPE_UTYPE
+    // value to identify union type fields.
     Type union_type(type.enum_def->underlying_type);
     union_type.base_type = BASE_TYPE_UTYPE;
-    ECHECK(AddField(struct_def, name + UnionTypeFieldSuffix(),union_type, &typefield));
-    
+    ECHECK(AddField(struct_def, name + UnionTypeFieldSuffix(), union_type,
+                    &typefield));
+
   } else if (IsVector(type) && type.element == BASE_TYPE_UNION) {
     advanced_features_ |= reflection::AdvancedUnionFeatures;
     // Only cpp, js and ts supports the union vector feature so far.
@@ -2511,14 +2513,15 @@ CheckedError Parser::ParseEnum(const bool is_union, EnumDef **dest,
     if (explicit_underlying_type) {
       // Specify the integer type underlying this enum.
       ECHECK(ParseType(enum_def->underlying_type));
-      if (!IsInteger(enum_def->underlying_type.base_type) || IsBool(enum_def->underlying_type.base_type)) {
-        return Error("underlying " + std::string(is_union ? "union" : "enum") + "type must be integral");
+      if (!IsInteger(enum_def->underlying_type.base_type) ||
+          IsBool(enum_def->underlying_type.base_type)) {
+        return Error("underlying " + std::string(is_union ? "union" : "enum") +
+                     "type must be integral");
       }
-        
+
       // Make this type refer back to the enum it was derived from.
       enum_def->underlying_type.enum_def = enum_def;
     }
-
   }
   ECHECK(ParseMetaData(&enum_def->attributes));
   const auto underlying_type = enum_def->underlying_type.base_type;
@@ -2718,7 +2721,7 @@ bool Parser::Supports64BitOffsets() const {
 }
 
 bool Parser::SupportsUnionUnderlyingType() const {
-    return (opts.lang_to_generate & ~(IDLOptions::kCpp | IDLOptions::kTs)) == 0;
+  return (opts.lang_to_generate & ~(IDLOptions::kCpp | IDLOptions::kTs)) == 0;
 }
 
 Namespace *Parser::UniqueNamespace(Namespace *ns) {
@@ -4329,6 +4332,7 @@ bool Parser::Deserialize(const reflection::Schema *schema) {
   }
 
   // Now fields can refer to structs and enums by index.
+  auto schema_root_type_name = schema->root_table()->name()->str();
   for (auto it = schema->objects()->begin(); it != schema->objects()->end();
        ++it) {
     std::string qualified_name = it->name()->str();
@@ -4336,8 +4340,13 @@ bool Parser::Deserialize(const reflection::Schema *schema) {
     struct_def->defined_namespace =
         GetNamespace(qualified_name, namespaces_, namespaces_index);
     if (!struct_def->Deserialize(*this, *it)) { return false; }
-    if (schema->root_table() == *it) { root_struct_def_ = struct_def; }
+    if (schema_root_type_name == qualified_name) {
+      root_struct_def_ = struct_def;
+    }
   }
+  FLATBUFFERS_ASSERT(
+    (schema_root_type_name.empty() || root_struct_def_)
+    && "Missing definition for the root type");
   for (auto it = schema->enums()->begin(); it != schema->enums()->end(); ++it) {
     std::string qualified_name = it->name()->str();
     auto enum_def = enums_.Lookup(qualified_name);
@@ -4453,8 +4462,11 @@ std::string Parser::ConformTo(const Parser &base) {
       }
     }
     // Check underlying type changes
-    if (enum_def_base->underlying_type.base_type != enum_def.underlying_type.base_type) {
-      return "underlying type differ for " + std::string(enum_def.is_union ? "union: " : "enum: ") + qualified_name;
+    if (enum_def_base->underlying_type.base_type !=
+        enum_def.underlying_type.base_type) {
+      return "underlying type differ for " +
+             std::string(enum_def.is_union ? "union: " : "enum: ") +
+             qualified_name;
     }
   }
   return "";
